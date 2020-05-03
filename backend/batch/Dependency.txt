@@ -1,0 +1,6 @@
+Dependency package -
+1. APSchedular
+2. Python::greenlet
+3. pyzmq - for publish subscribe
+4. pydaemon with ThreadExecutors for post processing 
+5. Doit : python framework for core batch framework
