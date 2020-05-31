@@ -1,0 +1,7 @@
+Dependency - 
+1. MongoDB
+2. mongoengine
+2a. Python::Schema (similar to jasonschema)
+3. mongoose - JS
+4. Hapi/Joi - JS
+5. mongo-models - JS
