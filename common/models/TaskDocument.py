@@ -1,9 +1,10 @@
 from ConfigConstants import *
 from mongoengine import *
 import datetime
-from BridgeObject import *
 import json, bson
 import sys, traceback
+
+from BridgeObject import *
 from User import *
 from Account import *
 from Payee import *
@@ -16,7 +17,7 @@ class Task (DynamicDocument):
     taskname = StringField(max_length=200, required=True,unique=True)
     
     #Start date for the task to be scheduled
-    startdate = DateTimeField(required=True,default=datetime.datetime.utcnow)
+    startdate = DateTimeField(required=True)
     
     # End date to express till
     enddate= DateTimeField(required=True)
@@ -37,16 +38,16 @@ class Task (DynamicDocument):
     currency = StringField(max_length=20,required=True,choices=ConfigContants.IN_CURRENCY )
     
     # Document reference to User
-    user =  ReferenceField(User,passthrough=True,reverse_delete_rule=True,required=True)
+    user =  ReferenceField(User,passthrough=True,reverse_delete_rule=CASCADE,required=True)
     
     # Document reference to instrument
-    instrument =  ReferenceField(Wallet,passthrough=True,reverse_delete_rule=True,required=True)
+    instrument =  ReferenceField(Wallet,passthrough=True,reverse_delete_rule=CASCADE,required=True)
     
     # Document reference to the payee
-    payee =  ReferenceField(Payee,passthrough=True,reverse_delete_rule=True,required=True)
+    payee =  ReferenceField(Payee,passthrough=True,reverse_delete_rule=CASCADE,required=True)
 
     # Document reference to the payee
-    account =  ReferenceField(Account,passthrough=True,reverse_delete_rule=True,required=True)
+    account =  ReferenceField(Account,passthrough=True,reverse_delete_rule=CASCADE,required=True)
 
      # time created : Time the document 1st saved
     timecreated = DateTimeField()
@@ -79,6 +80,7 @@ class Task (DynamicDocument):
         else:
             return None
 
+    @staticmethod
     def getAllTaskByPayee (pye):
         if (pye):
             try :
@@ -90,11 +92,12 @@ class Task (DynamicDocument):
                 return None
         else:
             return None
-    
+
+    @staticmethod        
     def getAllTaskByUserAndPayee (usr,pye):
-        if (usr && pye):
+        if (usr and pye):
             try :
-                qSet = Task.objects(user__in=User.objects.filter(id=usr.id) & Q(payee__in=Payee.objects.filter(id=pye.id)))
+                qSet = Task.objects(Q(user__in=User.objects.filter(id=usr.id)) & Q(payee__in=Payee.objects.filter(id=pye.id)))
                 print("Get Task Query: {}".format(qSet._query))
                 return qSet
             except:
@@ -102,11 +105,12 @@ class Task (DynamicDocument):
                 return None
         else:
             return None
-            
+
+    @staticmethod        
     def getTaskByUserAndPayeeAndTaskName (usr,pye,tname):
-        if (usr && pye && tname):
+        if (usr and pye and tname):
             try :
-                qSet = Task.objects(Q(user__in=User.objects.filter(id=usr.id)) & Q(payee__in=Payee.objects.filter(id=pye.id)) &Q(taskname=tname))
+                qSet = Task.objects(Q(user__in=User.objects.filter(id=usr.id)) & Q(payee__in=Payee.objects.filter(id=pye.id)) & Q(taskname=tname))
                 print("Get Payee Query: {}".format(qSet._query))
                 return qSet.first()
             except:
@@ -117,6 +121,7 @@ class Task (DynamicDocument):
 
     #---------------------------------------------
 
+    @staticmethod
     def getAllTaskByAccount (acnt):
         if (acnt):
             try :
@@ -129,11 +134,11 @@ class Task (DynamicDocument):
         else:
             return None
 
-    
+    @staticmethod    
     def getAllTaskByAccountAndPayee (acnt,pye):
-        if (acnt && pye):
+        if (acnt and pye):
             try :
-                qSet = Task.objects(account__in=Account.objects.filter(id=acnt.id) & Q(payee__in=Payee.objects.filter(id=pye.id)))
+                qSet = Task.objects(Q(account__in=Account.objects.filter(id=acnt.id)) & Q(payee__in=Payee.objects.filter(id=pye.id)))
                 print("Get Task Query: {}".format(qSet._query))
                 return qSet
             except:
@@ -141,12 +146,13 @@ class Task (DynamicDocument):
                 return None
         else:
             return None
-            
+
+    @staticmethod        
     def getTaskByAccountAndPayeeAndTaskName (acnt,pye,tname):
-        if (acnt && pye && tname):
+        if (acnt and pye and tname):
             try :
                 qSet = Task.objects(Q(account__in=Account.objects.filter(id=acnt.id)) &
-                    Q(payee__in=Payee.objects.filter(id=pye.id)) &Q(taskname=tname))
+                    Q(payee__in=Payee.objects.filter(id=pye.id)) & Q(taskname=tname))
                 print("Get Payee Query: {}".format(qSet._query))
                 return qSet.first()
             except:
@@ -164,9 +170,9 @@ class Task (DynamicDocument):
     # it will validate with schema and save
     @staticmethod
     def createPayee (usr,acnt, pye, fi, thedict):
-        if ( usr && acnt && pye && fi && thedict
-            && isinstance(thedict, dict)
-            && BridgeObjects.DataModelValidator.check(TaskSchema_,thedict)):
+        if ( usr and acnt and pye and fi and thedict
+            and isinstance(thedict, dict)
+            and DataModelValidator.check(TaskSchema_,thedict)):
             try:
                 tsk = Task(**thedict)
                 tsk.user = usr
@@ -190,10 +196,8 @@ class Task (DynamicDocument):
         if (udict && isinstance(udict, dict)):
             if (tsk):
                 for key in udict.keys():
-                    if key not in [k for k,v in tsk._fields.iteritems()]
-                        del udict[key]
-                for key in udict.keys():
-                    setattr(tsk, key, udict[key])
+                    if key in tsk._fields.keys():
+                        setattr(tsk, key, udict[key])
                 tsk.timeupdated = datetime.datetime.now()
                 try:
                     tsk.save()
