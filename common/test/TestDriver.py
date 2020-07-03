@@ -112,7 +112,7 @@ class Test(object):
 if __name__ == "__main__":
 
     #setup
-    test = Test("/home/ajitesh/code/tests/common/test/testdata.ini")
+    test = Test("testdata.ini")
     builder = TestDataBuilder("TestData_DebCredit.csv")
     pprint.pprint("-----------@@Main--------")
 

@@ -1,15 +1,17 @@
+from __future__ import print_function
 import os
 import time
 import atexit
 from datetime import datetime, timedelta
 from pytz import utc, timezone
-from __future__ import print_function
+
 import sys
 import inspect
 from cmd import Cmd
 import logging
 from apscheduler.schedulers import *
 from apscheduler.jobstores import *
+from apscheduler.jobstores.mongodb import *
 from apscheduler.executors import *
 from apscheduler.events import *
 from apscheduler.job  import *
@@ -241,7 +243,7 @@ class SchedulerMain():
         executors=SysExecutors_,
         job_defaults=SysJobDefaults_,
         logger=self.sched_logger,
-        timezone=self.jobconfig.createTimeZone()])
+        timezone=self.jobconfig.createTimeZone())
         self.sched_logger.info("Background Schedular initiated...")
         # Setting up a sysprompt
         self.prompt = SysPrompt(self.scheduler)
@@ -349,7 +351,7 @@ class SchedulerMain():
         # add all the system jobs properties to Runtime context.
         systemjoblist = self.schd.get_jobs()
         for no in range(len(systemjoblist)):
-            RuntimeContext.getInstance().appendSystemJobProperties((job(systemjoblist[no])).__getstate__())s
+            RuntimeContext.getInstance().appendSystemJobProperties((job(systemjoblist[no])).__getstate__())
         self.sched_logger.info("Adding of job properties to runtime context done...")
 
     

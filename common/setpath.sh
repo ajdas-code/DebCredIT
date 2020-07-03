@@ -1,6 +1,6 @@
 #!/bin/bash
 echo $PYTHONPATH
 echo 'setting module to python path...'
-export PYTHONPATH=$PYTHONPATH:.:$PYTHONPATH/models:$PYTHONPATH/config:$PYTHONPATH/test
+export PYTHONPATH=$PYTHONPATH:.:${PWD}:${PWD}/models:${PWD}/config:${PWD}/test
 echo $PYTHONPATH
-cd ./test
+cd ${PWD}/test
