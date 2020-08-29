@@ -17,6 +17,7 @@ class DBConfigReader():
            
     def __init__(self,filename=IniFileTags.FILE_PATH):
         
+        #print(">>>>>>>>>>>>filename: {0}".format(filename))
         if (not IniFileTags.checkValidfilename(filename)):
             raise ValueError("File not usable {0}".format(filename))
         parser = ConfigParser()
@@ -35,7 +36,7 @@ class DBConfigReader():
             self.user = ConfigConstants.DEFAULT_USER
         if not self.db:
             self.db = ConfigConstants.DEFAULT_DB
-            
+        self.toString()
             
 
     def toString(self):
@@ -74,26 +75,28 @@ class MongoDataStore():
            raise Exception("This class is a singleton!")
         else:
             try:
-                if (not dbconfigreader):
+                if (dbconfigreader):
                     self.dbconfigreader = dbconfigreader
                 else:
                     self.dbconfigreader = DBConfigReader()
                 print("Connecting to DB @host ->{0}".format(self.dbconfigreader.getHost()))
-                self.dbengine = mongoengine.connect(db=self.dbconfigreader.getDB(),username=self.dbconfigreader.getUser(),
+                self.dbengine = connect(db=self.dbconfigreader.getDB(),username=self.dbconfigreader.getUser(),
                 password=self.dbconfigreader.getPassword(),
-                host=self.dbconfigreader.getHost(),alias=ConfigConstant.DB_ALIAS)
+                host=self.dbconfigreader.getHost(),alias=ConfigConstants.DB_ALIAS)
                 MongoDataStore.__instance = self
             except:
                 MongoDataStore.__instance = None
-                raise Exception("DB connection Error")
+                traceback.print_exc()
+                raise Exception("DB create connection Error")
                 self.dbengine = None
     def __del__(self):
         try:
-            mongoengine.disconnect(alias=ConfigConstant.DB_ALIAS)
+            if (self.dbengine):
+                mongoengine.disconnect(alias=ConfigConstant.DB_ALIAS)
             
         except:
             MongoDataStore.__instance = None
-            raise Exception("DB connection Error")
+            raise Exception("delete DB connection Error")
         self.dbengine = None
                 
     def getDBConfigReader(self):

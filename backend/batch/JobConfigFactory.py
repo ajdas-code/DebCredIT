@@ -1,6 +1,7 @@
 import uuid
+import pprint
 from datetime import datetime, timedelta
-from ConfigParser import *
+from configparser import ConfigParser
 from ConfigConstants import *
 from apscheduler.triggers.cron import CronTrigger
 
@@ -16,8 +17,8 @@ class BatchConfigReader():
     
            
     def __init__(self,filename=IniFileTags.FILE_PATH):
-        
-        if (IniFileTags.checkValidFilename(filename)):
+        print("Checking file ...:{0}".format(filename))
+        if (not IniFileTags.checkValidfilename(filename)):
             raise ValueError("File not usable")
         
         self.parser = ConfigParser()
@@ -45,8 +46,8 @@ class BatchConfigReader():
 class JobConfigFactory():
     __instance = None
     @staticmethod
-    def getInstance(tag):
-    """ Static access method. """
+    def getInstance():
+        """ Static access method. """
         if JobConfigFactory.__instance == None:
             JobConfigFactory()
         return JobConfigFactory.__instance
@@ -62,13 +63,25 @@ class JobConfigFactory():
                 self.batchconfigreader = BatchConfigReader()
                 JobConfigFactory.__instance = self
                 self.globalparam = self.batchconfigreader.getConfiguration(IniFileTags.BATCH_GLOBAL_TAG)
+                print("Global Batch Configuation -->")
+                pprint.pprint(self.globalparam)
             except:
                 JobConfigFactory.__instance = None
                 raise Exception("Ini file reading Error")
 
     def setSchedular (self, schld):
         self.schld = schld
-        
+
+    def _get_trigger(self, expression):
+        # type: (str) -> CronTrigger
+        """
+        Evaluates a CronTrigger obj from cron expression
+        :param expression: String representing the crons five first fields, e.g : '* * * * *'
+        :return: A CronTrigger
+        """
+        vals = expression.split()
+        vals = [(None if w == '?' else w) for w in vals]
+        return CronTrigger(minute=vals[0], hour=vals[1], day=vals[2], month=vals[3], day_of_week=vals[4])
 
     def createTrigger (self, tag):
         if (not tag):
@@ -98,7 +111,7 @@ class JobConfigFactory():
         #get the max instqance
         if not customparams[IniFileTags.MAX_INSTANCE]:
             customparams[IniFileTags.MAX_INSTANCE] = ConfigConstants.MAX_INSTANCE
-        return customparams[IniFileTags.MAX_INSTANCE]
+        return int(customparams[IniFileTags.MAX_INSTANCE])
         
     def createCoalesce (self, tag):
         return True;

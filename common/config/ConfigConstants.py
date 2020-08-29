@@ -23,8 +23,8 @@ class IniFileTags():
         return True
 
     #Location of Config file
-    FILE_PATH = "../config/debcredit_config.ini"
-    
+    #FILE_PATH = "../config/debcredit_config.ini"
+    FILE_PATH = "../../common/test/testdata.ini"
     #Config file DB Key tags
     MONGO_TAG='db_details'
     HOST_TAG= 'host'
@@ -34,7 +34,7 @@ class IniFileTags():
     
     #config file global Batch key tags
     BATCH_GLOBAL_TAG = "batch_global_details"
-    TIMEZONE_TAG = "timezone"
+    TIMEZONE_TAG = "time_zone"
     EXECUTION_WINDOW = "execution_window"
     SHARDING = "sharding"
     SHARDING_ATTRIBUTE = "sharding_attribute"
@@ -68,7 +68,7 @@ class IniFileTags():
 class ConfigConstants():
 
     #default logger
-    LOGGER_FILE = "../config/debcredit.log"
+    LOGGER_FILE = "debcredit.log"
     # retry limit
     RETRY_LIMIT = 5
     

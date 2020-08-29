@@ -21,8 +21,9 @@ class RuntimeContext () :
         self.schd = None
         self.logger = None
         self.jobstat = {}
-        self.starttime = datetime.datetime.now()
-
+        self.starttime = datetime.now()
+        RuntimeContext.__instance = self
+        
     def __del__(self):
         self.schd = None
         self.logger = None

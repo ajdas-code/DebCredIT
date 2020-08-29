@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os
+import os,pprint
 import time
 import atexit
 from datetime import datetime, timedelta
@@ -11,13 +11,17 @@ from cmd import Cmd
 import logging
 from apscheduler.schedulers import *
 from apscheduler.jobstores import *
+from apscheduler.jobstores.memory import *
 from apscheduler.jobstores.mongodb import *
 from apscheduler.executors import *
+from apscheduler.executors.pool import *
 from apscheduler.events import *
+from apscheduler.events import EVENT_ALL
 from apscheduler.job  import *
 from MongoDataStore import *
 from ConfigConstants import *
 from RuntimeContext import *
+from JobConfigFactory import *
 
 
             
@@ -27,7 +31,7 @@ class Listener():
     @staticmethod
     def listenAndDispatchEvent(event):
         context = RuntimeContext.getInstance()
-        dispatcher = EventDispatcherFactory.getInstance(event)
+        #dispatcher = EventDispatcherFactory.getInstance(event)
         #check if normaal or
         if event.exception:
             #error/exception scenario
@@ -117,6 +121,7 @@ class SysPrompt(Cmd):
     intro = "Welcome to DebCredIt schedular admin console! Type ? to list commands"
 
     def __init__(self,schedular):
+        super(SysPrompt, self).__init__()
         self.schd = schedular
 
     def do_pause(self,inp):
@@ -144,9 +149,9 @@ class SysPrompt(Cmd):
         val = self.schd.get_jobs()
         print("Jobs:")
         print(*val, sep = "\n")
-        output = []
+        output = {}
         for no in range(len(val)):
-            output.extend((job(val[no])).__getstate__())
+            output.update(val[no].__getstate__())
         print (output)
 
     def help_getalljobs(self):
@@ -159,7 +164,7 @@ class SysPrompt(Cmd):
             val = self.schd.get_job(inp)
             print("Job:'{}'".format(val))
             output = {}
-            output= ((job(val)).__getstate__())
+            output= val.__getstate__()
             print (output)
 
     def help_getajob(self):
@@ -207,17 +212,17 @@ class SchedulerMain():
 
     SysJobstores_ = {
         'mongo': MongoDBJobStore(database= ((MongoDataStore.getInstance()).getDBConfigReader()).getDB(),
-        collection='system_jobs',
-        host= ((MongoDataStore.getInstance()).getDBConfigReader()).getHost(),
-        user= ((MongoDataStore.getInstance()).getDBConfigReader()).getUser(),
-        password= ((MongoDataStore.getInstance()).getDBConfigReader()).getPassword(),
-        ),
-        'default': MemoryJobStore(alias='system_jobs')
+                                 collection='system_jobs',
+                                 host= ((MongoDataStore.getInstance()).getDBConfigReader()).getHost()),
+                                 #user= ((MongoDataStore.getInstance()).getDBConfigReader()).getUser(),
+                                 #password= ((MongoDataStore.getInstance()).getDBConfigReader()).getPassword()),
+        'default': MemoryJobStore()
     }
 
     SysExecutors_ = {
         'default': {'type': 'threadpool', 'max_workers': 24},
-        'processpool': ProcessPoolExecutor(max_workers=9)
+        #'processpool': ProcessPoolExecutor(max_workers=9)
+        'processpool': {'type': 'threadpool', 'max_workers': 24}
     }
 
     SysJobDefaults_ = {
@@ -239,11 +244,11 @@ class SchedulerMain():
 
         #setting up schedular
         self.scheduler = BackgroundScheduler(daemon=True)
-        self.scheduler.configure(jobstores=SysJobstores_,
-        executors=SysExecutors_,
-        job_defaults=SysJobDefaults_,
-        logger=self.sched_logger,
-        timezone=self.jobconfig.createTimeZone())
+        self.scheduler.configure(jobstores=SchedulerMain.SysJobstores_,
+                                 executors=SchedulerMain.SysExecutors_,
+                                 job_defaults=SchedulerMain.SysJobDefaults_,
+                                 logger=self.sched_logger,
+                                 timezone=self.jobconfig.createTimeZone())
         self.sched_logger.info("Background Schedular initiated...")
         # Setting up a sysprompt
         self.prompt = SysPrompt(self.scheduler)
@@ -258,100 +263,108 @@ class SchedulerMain():
         #0 enablePamentInstanceJob
         self.sched_logger.info("enablePamentInstanceJob registration initiated...")
         self.scheduler.add_job(Jobs.enablePamentInstanceJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_ENABLE_PAYMENT_INSTANCE_TAG),
+                               misfire_grace_time= 300, next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("enablePamentInstanceJob registration done...")
                 
         #1 validateInstrumentsJob
         self.sched_logger.info("validateInstrumentsJob registration initiated...")
         self.scheduler.add_job(Jobs.validateInstrumentsJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_VALIDATE_INSTRUMENT_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("validateInstrumentsJob registration done...")
         
         #2 createTaskInstanceJob
         self.sched_logger.info("createTaskInstanceJob registration initiated...")
         self.scheduler.add_job(Jobs.createTaskInstanceJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_CREATE_TASK_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_CREATE_TASK_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_CREATE_TASK_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_CREATE_TASK_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_CREATE_TASK_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_CREATE_TASK_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_CREATE_TASK_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("createTaskInstanceJob registration done...")
         
         
         #3 executePaymentJob
         self.sched_logger.info("executePaymentJob registration initiated...")
         self.scheduler.add_job(Jobs.executePaymentJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_EXECUTE_PAYMENT_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("executePaymentJob registration done...")
         
         
         #4 capturePaymentJob
         self.sched_logger.info("capturePaymentJob registration initiated...")
         self.scheduler.add_job(Jobs.capturePaymentJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_CAPTURE_PAYMENTS_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("capturePaymentJob registration done...")
         
         
         #5 collectBizMetricsJob
         self.sched_logger.info("collectBizMetricsJob registration initiated...")
         self.scheduler.add_job(Jobs.collectBizMetricsJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_COLLECT_BIZ_METRICS_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("collectBizMetricsJob registration done...")
         
         
         #6 accountingPaymentJob
         self.sched_logger.info("accountingPaymentJob registration initiated...")
         self.scheduler.add_job(Jobs.accountingPaymentJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_ACCOUNTING_PAYMENTS_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("accountingPaymentJob registration done...")
         
         
         #7 generateReportJob
         self.sched_logger.info("generateReportJob registration initiated...")
         self.scheduler.add_job(Jobs.generateReportJob,
-        args=self.jobconfig.createArgs(IniFileTags.BATCH_GENERATE_REPORT_TAG),
-        trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_GENERATE_REPORT_TAG),
-        id=self.jobconfig.createId(IniFileTags.BATCH_GENERATE_REPORT_TAG),
-        name=self.jobconfig.createName(IniFileTags.BATCH_GENERATE_REPORT_TAG),
-        coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_GENERATE_REPORT_TAG),
-        max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_GENERATE_REPORT_TAG),executor='processpool')
+                               args=self.jobconfig.createArgs(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               trigger=self.jobconfig.createTrigger(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               id=self.jobconfig.createId(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               name=self.jobconfig.createName(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               coalesce=self.jobconfig.createCoalesce(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               max_instances=self.jobconfig.createMaxInstance(IniFileTags.BATCH_GENERATE_REPORT_TAG),
+                               misfire_grace_time= 300,next_run_time=datetime.now(), executor='processpool')
         self.sched_logger.info("generateReportJob registration done...")
         
         # add all the system jobs properties to Runtime context.
-        systemjoblist = self.schd.get_jobs()
+        systemjoblist = self.scheduler.get_jobs()
         for no in range(len(systemjoblist)):
-            RuntimeContext.getInstance().appendSystemJobProperties((job(systemjoblist[no])).__getstate__())
+            RuntimeContext.getInstance().appendSystemJobProperties(systemjoblist[no].__getstate__())
         self.sched_logger.info("Adding of job properties to runtime context done...")
 
     
