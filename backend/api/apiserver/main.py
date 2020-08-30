@@ -40,6 +40,15 @@ pprint.pprint(app.config)
 pprint.pprint("============================")
 
 
+############################################
+### Flask routes
+###########################################
+@app.route('/')
+def index():
+    return "<H1> Greetings </H1>"
+@app.route('/hello')
+def hello_world():
+   return "hello world"
 #############################################
 ########## Blueprints
 #############################################
@@ -56,7 +65,6 @@ db.init_app(app)
 
 
 def start_ngrok():
-    from twilio.rest import Client
     from pyngrok import ngrok
 
     url = ngrok.connect(5000)

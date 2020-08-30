@@ -1,17 +1,17 @@
 import json
 from flask_restful import Api, Resource, reqparse, fields, marshal
 from flask import jsonify, make_response, request
-from flask.ext.restful import abort
+from flask_restful import abort
 from werkzeug.datastructures import MultiDict
 from flask import current_app as app
 
 
 #### api module######
-from .util.Utils import *
+from Utils import *
 
 ####Application Import######
-from common.models.User import *
-from common.models.FinancialInstrument import *
+from User import *
+from FinancialInstrument import *
 
 from BridgeObjects import *
 from MongoDataStore import *

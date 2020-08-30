@@ -1,5 +1,5 @@
 from schema import Schema, And, Use, Optional, SchemaError
-from config.ConfigConstants import *
+from ConfigConstants import *
 from urllib.parse import urlparse
 import datetime,traceback
 import re

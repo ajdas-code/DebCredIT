@@ -4,7 +4,7 @@
 import flask
 from functools import wraps
 from flask import jsonify, make_response, request
-from flask.ext.restful import abort
+from flask_restful import abort
 from flask import current_app as app
 
 from mongoengine import *
@@ -37,7 +37,7 @@ def validate_request(f):
 # @cross_origin(origin="192.168.1.100") --> allow only 192.168.1.100 access
 def cross_origin(origin="*"):
     def cross_origin(func):
-        @functools.wraps(func)
+        @wraps(func)
         def _decoration(*args, **kwargs):
             ret = func(*args, **kwargs)
             _cross_origin_header = {"Access-Control-Allow-Origin": origin,

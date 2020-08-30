@@ -1,17 +1,17 @@
 import json
 from flask_restful import Api, Resource, reqparse, fields, marshal
 from flask import jsonify, make_response, request
-from flask.ext.restful import abort
+from flask_restful import abort
 from werkzeug.datastructures import MultiDict
 from flask import current_app as app
 
 
 #### api module######
-from .util.Utils import *
+from Utils import *
 
 ####Application Import######
-from common.models.User import *
-from common.models.Payee import *
+from User import *
+from Payee import *
 
 from BridgeObjects import *
 from MongoDataStore import *
@@ -70,7 +70,7 @@ class PayeeResource (Resource):
                 func = switch.indirect(attbr)
                 result = func(usr,value)
                 result_dict = json.loads(result.to_json())
-            else
+            else:
                 result = Payee.getAllPayeeByUser(usr)
                 result_dict = queryset_to_dict(result)
                 
@@ -146,7 +146,7 @@ class PayeeResource (Resource):
                 switch = Switcher()
                 func = switch.indirect(attbr)
                 payee = func(usr,value)
-            else
+            else:
                 raise BadRequestError("Need to provide attr and value to identify correct payee for user")
                 
             result = Payee.addTargetFIOnPayee(usr,raw_dict, {attbr:value})
@@ -191,7 +191,7 @@ class PayeeResource (Resource):
                     raise InternalError("Failed to delete user")
                 else:
                     return jsonify({"status": "success", "username":id})
-            else
+            else:
                 raise BadRequestError("Need to provide attr and value to identify correct payee for user")
         else:
             raise ResourceDoesNotExist("User of username {} does not exist".format(id))
