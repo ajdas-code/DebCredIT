@@ -36,7 +36,7 @@
     "inert": "4.x.x",
     "joi": "10.x.x",
     "mongo-models": "1.x.x",
-    "mongodb": "2.x.x",
+    "mongodb": "3.x.x",
     "nodemailer": "4.x.x",
     "nodemailer-markdown": "1.x.x",
     "object-assign": "4.x.x",
