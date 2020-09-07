@@ -60,6 +60,7 @@ class Daemon:
         
     def delpid(self):
         os.remove(self.pidfile)
+        pass
     
     def start(self):
         """

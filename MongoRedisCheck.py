@@ -30,7 +30,7 @@ def is_redis_available(conn):
     # ... get redis connection here, or pass it in. up to you.
     try:
         conn.get(None)  # getting None returns None or throws an exception
-    except (redis.exceptions.ConnectionError, 
+    except (redis.exceptions.ConnectionError,
             redis.exceptions.BusyLoadingError):
         return False
     return True
@@ -59,10 +59,10 @@ except:
 
 print(".......redis check done..........")
 
-########################################################################    
+########################################################################
 print('connecting to mongo "{}"'.format(mongo_host))
 time.sleep(5)
-client = MongoClient(mongo_host, serverSelectionTimeoutMS=10, connectTimeoutMS=20000)
+client = MongoClient(mongo_host, serverSelectionTimeoutMS=5000, connectTimeoutMS=20000)
 pprint.pprint(client.__dict__)
 try:
     info = client.server_info() # Forces a call.
