@@ -69,7 +69,7 @@
     "gulp-rename": "1.x.x",
     "gulp-sourcemaps": "2.x.x",
     "gulp-util": "3.x.x",
-    "jsdom": "11.x.x",
+    "jsdom": "16.x.x",
     "lab": "14.x.x",
     "lodash": "4.x.x",
     "merge-stream": "1.x.x",
