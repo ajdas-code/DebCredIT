@@ -73,7 +73,7 @@
     "lab": "14.x.x",
     "lodash": "4.x.x",
     "merge-stream": "1.x.x",
-    "moment": "2.18.x",
+    "moment": "2.29.x",
     "nodemon": "1.x.x",
     "promptly": "2.x.x",
     "prop-types": "15.x.x",
